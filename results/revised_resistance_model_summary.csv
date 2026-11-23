@@ -1,0 +1,3 @@
+Model,Weighted_MAE,Weighted_RMSE
+Baseline,1.947370828732876,2.7121941791207793
+Baseline + Revised Apparent Resistance,2.4433149762437734,3.10979867572782
