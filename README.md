@@ -81,11 +81,15 @@ Discharge measurements are processed to derive:
 
 SoH is calculated relative to the first measured discharge capacity of each battery:
 
-The State of Health (SoH) is calculated as:
+The State of Health (SoH) is calculated relative to the first measured discharge capacity of each battery:
 
 $$
-\mathrm{SoH}_i(\%) = \frac{Q_i}{Q_{\mathrm{initial}}} \times 100
+\mathrm{SoH}_i = \frac{Q_i}{Q_{\mathrm{initial}}} \times 100
 $$
+
+where:
+- $Q_i$ is the discharge capacity measured at observation $i$ (Ah).
+- $Q_{\mathrm{initial}}$ is the first measured discharge capacity of the same battery (Ah).
 
 Impedance measurements, including electrolyte resistance (Re) and charge-transfer resistance (Rct), are matched to discharge observations using timestamp-based matching.
 
