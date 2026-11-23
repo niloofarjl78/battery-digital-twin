@@ -1,0 +1,17 @@
+
+# Raw NASA battery data
+data/*.mat
+raw_data/
+*.mat
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Virtual environments and secrets
+.venv/
+venv/
+.env
