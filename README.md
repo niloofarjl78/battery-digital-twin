@@ -223,7 +223,7 @@ The architecture consists of the following main components:
 
 ### Architecture Diagram
 
-```mermaid
+
 flowchart TD
     A["NASA Battery Aging Dataset"]
     B["Data Extraction"]
@@ -235,9 +235,10 @@ flowchart TD
     H["Baseline SoH Model"]
     I["Impedance-Enhanced SoH Model"]
     J["Hybrid Prediction Strategy"]
-    K["LOBO Model Validation"]
-    L["Battery State Update"]
-    M["SoH Monitoring and Performance Analysis"]
+    K["Battery State Update"]
+    L["SoH Monitoring"]
+    M["LOBO Model Validation"]
+    N["Performance Analysis"]
 
     A --> B
     B --> C
@@ -252,8 +253,9 @@ flowchart TD
     I --> J
     J --> K
     K --> L
-    L --> M
-```
+    J --> M
+    M --> N
+
 
 ### Implementation Scope
 
