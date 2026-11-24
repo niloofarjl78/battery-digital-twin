@@ -88,8 +88,6 @@ The proposed architecture follows a data-driven Digital Twin workflow. It connec
 ### Architecture diagram
 
 
-### Architecture Diagram
-
 ```mermaid
 flowchart TD
     A["NASA Battery Aging Dataset"]
