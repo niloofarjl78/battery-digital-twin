@@ -1,161 +1,173 @@
-# Battery Digital Twin – Experimental Results
+## Results
 
-This directory contains the experimental outputs of the battery health monitoring and Digital Twin prototype. The results cover State-of-Health (SoH) estimation, cross-battery model validation, impedance-based health indicators, post-discharge voltage relaxation, and residual analysis.
+This section summarises the main findings from battery health estimation, impedance integration, hybrid Digital Twin modelling, and the investigation of relaxation-based degradation indicators.
 
-The experiments use four lithium-ion batteries from the NASA Battery Data Set: B0005, B0006, B0007, and B0018.
+### Baseline SoH Estimation
 
-## Overview of the Experiments
+A Ridge Regression model using electrical and thermal measurements was evaluated through Leave-One-Battery-Out (LOBO) validation. Each battery was held out once for testing, while the remaining three batteries were used for training.
 
-The analysis investigates three main questions:
+The baseline model achieved the following results:
 
-- How accurately can battery SoH be estimated from operational electrical and thermal measurements?
-- Do impedance-related indicators provide additional information about battery degradation?
-- Can a hybrid estimation strategy maintain SoH monitoring when impedance measurements are unavailable?
+| Test Battery | Test Observations | MAE (percentage points) | RMSE (percentage points) | $R^2$ |
+|---|---:|---:|---:|---:|
+| B0005 | 168 | 1.7923 | 2.5010 | 0.9402 |
+| B0006 | 168 | 3.4296 | 4.2320 | 0.8825 |
+| B0007 | 168 | 4.2123 | 4.9917 | 0.6540 |
+| B0018 | 132 | 1.5000 | 1.7369 | 0.9564 |
 
-The models are evaluated using **Leave-One-Battery-Out (LOBO) validation**. In each experiment, three batteries are used for training and the remaining battery is held out for testing. This evaluates how well the models generalise to a battery that was not included in the training data.
+The results indicate that the baseline model can estimate SoH with relatively low errors for B0005, B0006, and B0018. However, performance is weaker for B0007, suggesting that the relationship between operational measurements and battery health does not generalise equally well across all battery cells.
 
-## SoH Definition
+### Contribution of Impedance Measurements
 
-The reference State of Health is calculated from the measured discharge capacity:
+The contribution of impedance measurements was investigated by comparing two models:
 
-\[
-\mathrm{SoH}_i =
-\frac{Q_i}{Q_{\mathrm{initial}}}\times 100
-\]
+- **Model A – Baseline:** electrical and thermal operational features.
+- **Model B – Impedance-augmented:** the same features supplemented with the measured electrolyte resistance ($R_e$) and charge-transfer resistance ($R_{ct}$).
+
+To ensure a fair comparison, both models were trained and evaluated using the same observations for which impedance measurements were available. This resulted in 419 matched observations across the four batteries.
+
+| Test Battery | Model A MAE | Model B MAE | Change in MAE |
+|---|---:|---:|---:|
+| B0005 | 1.4376 | 1.7044 | 18.56% worse |
+| B0006 | 2.9777 | 2.8362 | 4.75% better |
+| B0007 | 3.6999 | 1.3230 | 64.24% better |
+| B0018 | 2.5204 | 4.1715 | 65.51% worse |
+| **Weighted average** | **2.6949** | **2.0762** | **22.96% better** |
+
+The impedance-augmented model achieved a 22.96% reduction in weighted MAE across the matched observations. However, its contribution varied substantially between batteries: performance improved for B0006 and B0007 but deteriorated for B0005 and B0018.
+
+An additional feature-ablation analysis indicated that $R_e$ provided a stronger overall contribution than $R_{ct}$ in this dataset. Combining both impedance variables did not consistently improve performance over using $R_e$ alone.
+
+These findings suggest that impedance measurements can provide useful complementary information for battery health estimation, but their predictive contribution is battery-dependent.
+
+### Hybrid Digital Twin SoH Estimation
+
+A hybrid estimation strategy was developed to account for the incomplete availability of impedance measurements.
+
+The approach combines two models:
+
+- Model A estimates SoH using electrical and thermal measurements and serves as the fallback model.
+- Model B incorporates impedance measurements when they are available.
+
+For each observation, the hybrid framework uses the impedance-augmented estimate when a valid impedance measurement is available; otherwise, it retains the baseline estimate.
+
+The evaluation used the same matched-observation training population for both models, while predictions were generated for all observations of each held-out battery.
+
+| Test Battery | Total Observations | Baseline MAE | Hybrid MAE | MAE Improvement |
+|---|---:|---:|---:|---:|
+| B0005 | 168 | 2.0666 | 2.2762 | -10.14% |
+| B0006 | 168 | 3.2443 | 3.1331 | +3.43% |
+| B0007 | 168 | 4.5667 | 2.6991 | +40.90% |
+| B0018 | 132 | 1.7862 | 2.0739 | -16.11% |
+| **Weighted average** | **636** | **2.9799** | **2.5723** | **+13.68%** |
+
+The hybrid strategy reduced the overall weighted MAE by 13.68% compared with the baseline evaluated on the same test observations. The largest improvement occurred for B0007, whereas performance deteriorated for B0005 and B0018.
+
+This demonstrates the potential of a Digital Twin architecture that can incorporate additional diagnostic measurements when available while maintaining operation through a baseline estimation model when they are missing. Nevertheless, the results also show that adding impedance information does not guarantee improved estimation for every battery.
+
+### Impedance Availability and Prediction Reliability
+
+Impedance measurements were not available for every discharge observation.
+
+| Battery | Discharge Observations | Matched Impedance Observations | Coverage |
+|---|---:|---:|---:|
+| B0005 | 168 | 132 | 78.57% |
+| B0006 | 168 | 132 | 78.57% |
+| B0007 | 168 | 132 | 78.57% |
+| B0018 | 132 | 23 | 17.42% |
+| **Total** | **636** | **419** | **65.88%** |
+
+The availability analysis reveals an important limitation: impedance coverage differs substantially between batteries, particularly for B0018.
+
+Furthermore, the unmatched observations do not necessarily represent a random subset of the dataset. Therefore, the performance of the impedance-augmented model on matched observations should not be interpreted as evidence that impedance will improve estimation across all operating conditions.
+
+The hybrid architecture addresses this limitation by preserving baseline predictions when impedance measurements are unavailable.
+
+### Residual Analysis
+
+Prediction residuals were calculated as:
+
+$$
+e_i = \widehat{\mathrm{SoH}}_i - \mathrm{SoH}_i
+$$
+
+Positive residuals indicate SoH overestimation, while negative residuals indicate underestimation.
+
+The residual analysis revealed different error patterns across the batteries:
+
+- **B0005:** The baseline model tended to underestimate SoH on unmatched observations, while the impedance-augmented model showed some overestimation during later degradation stages.
+- **B0006:** Prediction errors varied across degradation stages, with the impedance-augmented model showing a smaller overall bias on the matched observations.
+- **B0007:** The impedance-augmented model substantially reduced the errors observed with the baseline model on matched observations.
+- **B0018:** The impedance-augmented model showed higher errors, although impedance coverage was particularly limited for this battery.
+
+These findings highlight the importance of evaluating prediction errors at battery and degradation-stage levels rather than relying exclusively on aggregate performance metrics.
+
+### Investigation of Relaxation-Based Health Indicators
+
+Post-discharge voltage relaxation was investigated as an additional source of degradation-related information.
+
+Following discharge termination, the measured voltage was fitted using a single-exponential relaxation model:
+
+$$
+V(t) = V_{\infty} + A \exp\left(-\frac{t-t_0}{\tau}\right)
+$$
 
 where:
 
-- \(Q_i\) is the measured discharge capacity at observation \(i\), in Ah.
-- \(Q_{\mathrm{initial}}\) is the first measured discharge capacity of the same battery.
+- $V_{\infty}$ represents the fitted long-term voltage level.
+- $A$ represents the fitted voltage relaxation amplitude.
+- $\tau$ represents the relaxation time constant.
+- $t_0$ is the beginning of the post-discharge relaxation period.
 
-SoH is therefore normalised independently for each battery. It represents a capacity-based health indicator rather than a direct measurement of all battery degradation mechanisms.
+The fitted parameters showed associations with measured SoH across several batteries. However, their relationships were not consistent across all cells, and the parameters were also correlated with one another.
 
-## Model Evaluation Metrics
+A cross-battery model comparison was conducted using 533 observations with available relaxation parameters. Adding the relaxation parameters to the operational baseline features did not improve the overall weighted MAE:
 
-The models are evaluated using Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and the coefficient of determination (\(R^2\)).
+| Model Configuration | Weighted MAE |
+|---|---:|
+| Electrical and thermal baseline | 1.9474 |
+| Baseline + relaxation time constant ($\tau$) | 2.4161 |
+| Baseline + relaxation amplitude ($A$) | 2.4648 |
+| Baseline + fitted final voltage ($V_{\infty}$) | 2.2161 |
+| Baseline + all three relaxation parameters | 3.8285 |
 
-\[
-\mathrm{MAE} =
-\frac{1}{n}\sum_{i=1}^{n}
-|y_i-\hat{y}_i|
-\]
+Although some relaxation indicators improved performance for individual batteries, their addition did not improve generalisation across the complete battery set under the current modelling configuration.
 
-\[
-\mathrm{RMSE} =
-\sqrt{\frac{1}{n}\sum_{i=1}^{n}
-(y_i-\hat{y}_i)^2}
-\]
+### Apparent Resistance as a Diagnostic Indicator
 
-\[
-R^2 =
-1-
-\frac{\sum_{i=1}^{n}(y_i-\hat{y}_i)^2}
-{\sum_{i=1}^{n}(y_i-\bar{y})^2}
-\]
+An additional apparent resistance proxy was investigated using the fitted relaxation amplitude and the current immediately before discharge termination:
 
-where \(y_i\) is the measured SoH, \(\hat{y}_i\) is the estimated SoH, and \(\bar{y}\) is the mean measured SoH.
+$$
+R_{\mathrm{app}} = \frac{A}{I_{\mathrm{cutoff}}}
+$$
 
-MAE and RMSE are expressed in SoH percentage points. Lower values indicate smaller prediction errors, while higher \(R^2\) values indicate a better fit to the observed variation.
+where $I_{\mathrm{cutoff}}$ is the absolute current immediately before discharge termination.
 
-## Baseline SoH Estimation
+The apparent resistance proxy showed negative correlations with SoH across all four batteries:
 
-The baseline model uses operational electrical and thermal features:
+| Battery | Pearson Correlation with SoH | Spearman Correlation with SoH |
+|---|---:|---:|
+| B0005 | -0.9299 | -0.9419 |
+| B0006 | -0.8322 | -0.7140 |
+| B0007 | -0.9680 | -0.9701 |
+| B0018 | -0.9035 | -0.9287 |
 
-- Mean, minimum, and maximum voltage
-- Mean current
-- Mean and maximum temperature
-- Temperature rise during discharge
+These associations indicate that the apparent resistance proxy increases as capacity-based SoH decreases in the investigated observations.
 
-A Ridge Regression model with feature standardisation is used to estimate SoH.
+However, incorporating this indicator into the cross-battery prediction model did not improve overall performance. The weighted MAE increased from 1.9474 to 2.4433 percentage points.
 
-The discharge duration is excluded from the prediction features because it is directly related to the capacity calculation and could introduce target leakage.
+The indicator is therefore retained as a diagnostic feature for further investigation rather than as a validated physical resistance parameter or a selected predictive feature.
 
-### Leave-One-Battery-Out Results
+Importantly, $R_{\mathrm{app}}$ is an empirical proxy derived from post-discharge relaxation. It should not be interpreted as a directly measured ohmic resistance or as an identified electrochemical equivalent-circuit parameter.
 
-| Held-out battery | Training observations | Test observations | MAE | RMSE | R² |
-|---|---:|---:|---:|---:|---:|
-| B0005 | 468 | 168 | 1.7923 | 2.5010 | 0.9402 |
-| B0006 | 468 | 168 | 3.4296 | 4.2320 | 0.8825 |
-| B0007 | 468 | 168 | 4.2123 | 4.9917 | 0.6540 |
-| B0018 | 504 | 132 | 1.5000 | 1.7369 | 0.9564 |
+### Main Findings
 
-The baseline model performs differently across the four batteries. B0018 and B0005 show relatively low estimation errors, whereas B0007 is more challenging to predict.
+The experiments lead to the following conclusions:
 
-This variation highlights the difficulty of transferring a model between batteries with different degradation trajectories and operating characteristics.
+1. Electrical and thermal operational measurements provide a useful baseline for capacity-based SoH estimation, although generalisation performance varies across batteries.
+2. Impedance measurements can improve SoH estimation on matched observations, but their contribution is not consistent across battery cells.
+3. A hybrid estimation strategy can accommodate incomplete impedance availability and achieved a 13.68% reduction in overall weighted MAE compared with the baseline in the evaluated experiment.
+4. Post-discharge relaxation parameters and the apparent resistance proxy show degradation-related associations, but they did not improve overall cross-battery prediction performance in the current experiments.
+5. Missing measurements, differences between battery cells, and temporal degradation patterns remain important challenges for reliable battery health estimation.
 
-## Contribution of Impedance Indicators
-
-The NASA dataset provides two impedance-related indicators:
-
-- \(R_e\): estimated electrolyte resistance.
-- \(R_{ct}\): estimated charge-transfer resistance.
-
-These indicators are matched to discharge observations using their timestamps. Only impedance measurements within the specified one-hour backward matching tolerance are retained. Missing impedance measurements are preserved rather than replaced with zero.
-
-A comparison was conducted using the same matched observations for both models:
-
-- **Model A:** operational electrical and thermal features.
-- **Model B:** the same features, augmented with \(R_e\) and \(R_{ct}\).
-
-### Matched-Observation Comparison
-
-| Battery | Model A MAE | Model B MAE | Change in MAE |
-|---|---:|---:|---:|
-| B0005 | 1.4376 | 1.7044 | +18.56% |
-| B0006 | 2.9777 | 2.8362 | −4.75% |
-| B0007 | 3.6999 | 1.3230 | −64.24% |
-| B0018 | 2.5204 | 4.1715 | +65.51% |
-| **Weighted overall** | **2.6949** | **2.0762** | **−22.96%** |
-
-The weighted MAE is calculated by aggregating absolute prediction errors across all matched test observations, rather than taking an unweighted average of the battery-level MAEs.
-
-The results indicate that impedance indicators can provide useful additional information, but their contribution is not consistent across batteries. The improvement is particularly strong for B0007, while the augmented model performs worse for B0005 and B0018.
-
-An additional feature-ablation analysis suggests that \(R_e\) contributes more consistently than \(R_{ct}\) in this dataset. However, the results do not establish that either indicator will improve estimation for every battery.
-
-## Hybrid SoH Estimation
-
-To address incomplete impedance availability, a hybrid estimation strategy was investigated.
-
-The strategy uses:
-
-- Model A when impedance measurements are unavailable.
-- Model B when impedance measurements are available.
-
-This allows the Digital Twin to continue producing SoH estimates without requiring a complete impedance record for every discharge observation.
-
-### Hybrid Model Results
-
-| Held-out battery | Model A only MAE | Hybrid MAE | MAE improvement |
-|---|---:|---:|---:|
-| B0005 | 2.0666 | 2.2762 | −10.14% |
-| B0006 | 3.2443 | 3.1331 | +3.43% |
-| B0007 | 4.5667 | 2.6991 | +40.90% |
-| B0018 | 1.7862 | 2.0739 | −16.11% |
-| **Weighted overall** | **2.9799** | **2.5723** | **+13.68%** |
-
-The hybrid strategy reduces the weighted overall MAE by approximately 13.68% compared with the baseline-only strategy under this evaluation setup.
-
-However, the effect varies across batteries. The hybrid model improves the results for B0006 and B0007, but slightly worsens them for B0005 and B0018.
-
-The comparison should also be interpreted in light of the non-uniform availability of impedance measurements. In particular, B0018 has substantially fewer matched impedance observations than the other batteries.
-
-## Post-Discharge Voltage Relaxation
-
-The discharge records were further investigated to examine voltage recovery after the discharge current is interrupted.
-
-The post-discharge voltage response was approximated using a single-exponential relaxation model:
-
-\[
-V(t)=V_{\infty}+A\exp\left(-\frac{t}{\tau}\right)
-\]
-
-where:
-
-- \(V(t)\) is the measured voltage after discharge termination.
-- \(V_{\infty}\) is the fitted asymptotic voltage.
-- \(A\) is the fitted voltage relaxation amplitude.
-- \(\tau\) is the relaxation time constant, in seconds.
-- \(t\) is elapsed time after discharge termination.
-
-The model was fitted independently to individual discharge records. The resulting parameters
+Overall, the results support the feasibility of an interpretable, data-driven Digital Twin prototype that combines operational measurements, diagnostic indicators, and machine-learning-based SoH estimation. Further work is required to establish physically validated equivalent-circuit parameters, improve temporal generalisation, and evaluate the framework under additional operating conditions.
