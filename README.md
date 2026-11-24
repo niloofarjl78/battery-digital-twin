@@ -87,22 +87,27 @@ The proposed architecture follows a data-driven Digital Twin workflow. It connec
 
 ### Architecture diagram
 
-```mermaid
+
 flowchart TD
     A["NASA Battery Aging Dataset"]
     B["Data Extraction"]
+
     C["Discharge Features"]
     D["Impedance Features"]
+
     E["Timestamp-Based Data Integration"]
     F["Combined Battery Dataset"]
     G["Feature Engineering"]
-    H["Baseline SoH Model"]
-    I["Impedance-Enhanced SoH Model"]
+
+    H["Baseline SoH Model<br/>Ridge Regression"]
+    I["Impedance-Enhanced SoH Model<br/>Ridge Regression"]
     J["Hybrid Prediction Strategy"]
+
     K["Battery State Update"]
     L["SoH Monitoring"]
-    M["LOBO Model Validation"]
-    N["Performance Analysis"]
+
+    M["LOBO Cross-Validation"]
+    N["Performance Evaluation<br/>MAE, RMSE, R²"]
 
     A --> B
     B --> C
@@ -111,17 +116,21 @@ flowchart TD
     D --> E
     E --> F
     F --> G
+
     G --> H
     G --> I
+
     H --> J
     I --> J
+
     J --> K
     K --> L
-    J --> M
-    M --> N
-```
 
----
+    H -.-> M
+    I -.-> M
+    J -.-> M
+    M --> N
+
 
 ## Methodology
 
