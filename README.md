@@ -79,7 +79,6 @@ Discharge measurements are processed to derive:
 - Discharge duration.
 - Capacity-based State of Health.
 
-SoH is calculated relative to the first measured discharge capacity of each battery:
 
 The State of Health (SoH) is calculated relative to the first measured discharge capacity of each battery:
 
