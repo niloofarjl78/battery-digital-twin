@@ -201,17 +201,18 @@ battery-digital-twin/
 - `results/`: Exported datasets, model evaluation metrics, diagnostic analyses, and visualisations.
 - `.gitignore`: Excludes raw data files and temporary development files from version control.
 
-## Reproducibility
+### Reproducibility
 
-To reproduce the experiments:
+To run the notebooks in Google Colab:
 
-1. Clone or download this repository.
-2. Follow the instructions in [`data/README.md`](data/README.md) to obtain the NASA battery dataset.
-3. Extract the four required MATLAB files (`B0005.mat`, `B0006.mat`, `B0007.mat`, and `B0018.mat`) into the `data/` directory.
-4. Open the notebooks in Google Colab or a local Jupyter environment.
-5. Run the data extraction and modelling notebook before the Digital Twin architecture notebook.
+1. Download the [NASA Battery Data Set](https://phm-datasets.s3.amazonaws.com/NASA/5.+Battery+Data+Set.zip).
+2. Extract the archive and locate `B0005.mat`, `B0006.mat`, `B0007.mat`, and `B0018.mat`.
+3. Open Notebook 01 in Google Colab.
+4. When prompted by the notebook, upload the four MATLAB files into the Colab session.
+5. Run Notebook 01 to extract and process the battery data and generate the combined dataset.
+6. Open Notebook 02 and follow its setup instructions to load the generated dataset and explore the Digital Twin architecture.
 
-The notebooks contain the data-processing, feature engineering, modelling, and evaluation workflows.
+The original MATLAB files are not included in this repository because of their size. See [`data/README.md`](data/README.md) for dataset information and citation details.
 
 ## Tools and Technologies
 
