@@ -423,7 +423,7 @@ Potential directions for further research include:
 
 ## References
 
-1. Saha, B. and Goebel, K. (2007). *Battery Data Set*. NASA Prognostics Data Repository, NASA Ames Research Center, Moffett Field, CA.
+1. Saha, B. and Goebel, K. (2007). *Battery Data Set*. NASA Prognostics Data Repository, NASA Ames Research Center, Moffett Field, CA. https://doi.org/10.3390/electronics13030587
 
 2. Safavi, S. et al. (2024). *Battery State-of-Health Estimation: A Step towards Battery Digital Twins*. Electronics, 13(3), 587. https://doi.org/10.3390/electronics13030587
 
