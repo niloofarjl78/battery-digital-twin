@@ -28,17 +28,20 @@ The prototype represents battery condition through an updated digital state cont
 The proposed prototype is organised into interconnected layers:
 
 **Physical Data Layer**
+
 - Battery charge and discharge measurements.
 - Voltage, current, and temperature observations.
 - Capacity and impedance measurements.
 
 **Data Processing Layer**
+
 - MATLAB data extraction.
 - Timestamp processing and data integration.
 - Feature engineering and impedance-to-discharge matching.
 - Data quality checks and missing-value handling.
 
 **Digital State Layer**
+
 - Battery identification and observation tracking.
 - Capacity and measured SoH.
 - Electrical and thermal indicators.
@@ -46,6 +49,7 @@ The proposed prototype is organised into interconnected layers:
 - Estimated SoH.
 
 **Health Estimation and Diagnostic Layer**
+
 - Ridge regression for SoH estimation.
 - Cross-battery model validation.
 - Prediction error and residual analysis.
@@ -64,6 +68,10 @@ The dataset includes charge, discharge, and impedance measurements collected dur
 
 **Dataset source:** [NASA PCoE Battery Data Set](https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/)
 
+**Dataset citation:**
+
+Saha, B. and Goebel, K. (2007). *Battery Data Set*. NASA Prognostics Data Repository, NASA Ames Research Center, Moffett Field, CA.
+
 The original MATLAB files are not included in this repository. Refer to [`data/README.md`](data/README.md) for download and setup instructions.
 
 ## Methodology
@@ -71,6 +79,7 @@ The original MATLAB files are not included in this repository. Refer to [`data/R
 ### Data Extraction and Feature Engineering
 
 Discharge measurements are processed to derive:
+
 - Discharge capacity.
 - Mean, minimum, and maximum voltage.
 - Mean current.
@@ -79,6 +88,9 @@ Discharge measurements are processed to derive:
 - Discharge duration.
 - Capacity-based State of Health.
 
+Discharge duration is retained as a descriptive variable but excluded from the SoH prediction models to avoid potential target leakage, since discharge capacity is derived from current and discharge time.
+
+### State-of-Health Calculation
 
 The State of Health (SoH) is calculated relative to the first measured discharge capacity of each battery:
 
@@ -87,16 +99,18 @@ $$
 $$
 
 where:
-- $Q_i$ is the discharge capacity measured at observation $i$ (Ah).
-- $Q_{\mathrm{initial}}$ is the first measured discharge capacity of the same battery (Ah).
 
-Impedance measurements, including electrolyte resistance (Re) and charge-transfer resistance (Rct), are matched to discharge observations using timestamp-based matching.
+- \(Q_i\) is the discharge capacity measured at observation \(i\) (Ah).
+- \(Q_{\mathrm{initial}}\) is the first measured discharge capacity of the same battery (Ah).
+
+Impedance measurements, including electrolyte resistance (Re) and charge-transfer resistance (Rct), are matched to discharge observations using timestamp-based matching. Missing impedance measurements are preserved rather than replaced with artificial values.
 
 ### State-of-Health Estimation
 
 Ridge regression models are developed using electrical and thermal features, with additional experiments incorporating impedance-related indicators.
 
 Model performance is evaluated using:
+
 - Mean Absolute Error (MAE).
 - Root Mean Squared Error (RMSE).
 - Coefficient of Determination (R²).
@@ -109,13 +123,21 @@ This evaluates the ability of the model to generalise to a battery not represent
 
 ### Interpretable Health Indicators
 
-The project investigates the relationship between SoH and resistance-related indicators, including Re and an apparent resistance proxy derived from post-discharge voltage relaxation.
+The project investigates the relationship between SoH and resistance-related indicators, including:
+
+- Electrolyte resistance (Re).
+- Charge-transfer resistance (Rct).
+- An apparent resistance proxy derived from post-discharge voltage relaxation.
+
+The apparent resistance is estimated using the fitted relaxation voltage amplitude and the current immediately before discharge termination.
 
 These indicators are treated as diagnostic proxies rather than independently validated electrochemical parameters.
 
 ## Key Results
 
-The initial Ridge regression model, evaluated using leave-one-battery-out validation, achieved the following results:
+### Baseline Model: Leave-One-Battery-Out Validation
+
+The initial Ridge regression model, using electrical and thermal features, achieved the following results:
 
 | Held-out battery | MAE (%) | RMSE (%) | R² |
 |---|---:|---:|---:|
@@ -124,15 +146,35 @@ The initial Ridge regression model, evaluated using leave-one-battery-out valida
 | B0007 | 4.2123 | 4.9917 | 0.6540 |
 | B0018 | 1.5000 | 1.7369 | 0.9564 |
 
+The results indicate differences in predictive performance across battery cells, highlighting the challenge of cross-battery generalisation.
+
+### Contribution of Impedance Measurements
+
 Further experiments investigated the contribution of impedance features using the same matched observations for both models.
 
-The impedance-augmented model reduced the weighted MAE from 2.6949% to 2.0762% in this matched-observation comparison. However, the improvement varied across battery cells, indicating that the contribution of impedance measurements is battery-dependent.
+The impedance-augmented model reduced the weighted MAE from **2.6949% to 2.0762%**, corresponding to a 22.96% reduction in this matched-observation comparison.
 
-A hybrid estimation strategy was also explored, combining the baseline model with impedance-augmented predictions when impedance measurements were available. Its overall MAE was 2.5723%, compared with 2.9799% for the baseline model evaluated on the same test observations.
+However, the improvement varied across battery cells. Impedance features improved performance for some cells but reduced it for others, indicating that their predictive contribution is battery-dependent.
 
-These findings highlight the potential value of impedance information while also demonstrating the importance of missing-data patterns and cross-battery generalisation.
+### Hybrid SoH Estimation
+
+A hybrid estimation strategy was also evaluated. It uses the impedance-augmented model when impedance measurements are available and the baseline model as a fallback when they are missing.
+
+Across all test observations, the hybrid approach achieved an overall MAE of **2.5723%**, compared with **2.9799%** for the baseline model evaluated on the same test observations. This corresponds to a **13.68% reduction in MAE**.
+
+However, performance varied across battery cells, reflecting differences in impedance availability and model generalisation.
+
+### Resistance-Related Diagnostic Analysis
+
+The analysis identified strong associations between resistance-related indicators and battery SoH in several cells.
+
+However, these relationships do not necessarily translate into improved cross-battery prediction. Experiments incorporating the apparent resistance proxy did not improve the overall weighted MAE of the baseline model.
+
+This distinction highlights the difference between an indicator's diagnostic relationship with battery degradation and its usefulness as a predictive feature.
 
 ## Repository Structure
+
+The repository is organised into three main directories:
 
 ```text
 battery-digital-twin/
@@ -154,11 +196,18 @@ battery-digital-twin/
 └── README.md
 ```
 
+- `data/`: Instructions for obtaining and preparing the original NASA battery dataset.
+- `notebooks/`: Jupyter notebooks for data exploration, feature engineering, SoH estimation, model validation, and Digital Twin architecture development.
+- `results/`: Exported datasets, model evaluation metrics, diagnostic analyses, and visualisations.
+- `.gitignore`: Excludes raw data files and temporary development files from version control.
+
 ## Reproducibility
 
+To reproduce the experiments:
+
 1. Clone or download this repository.
-2. Follow the instructions in `data/README.md` to obtain the NASA battery dataset.
-3. Place the four required MATLAB files in the `data/` directory.
+2. Follow the instructions in [`data/README.md`](data/README.md) to obtain the NASA battery dataset.
+3. Extract the four required MATLAB files (`B0005.mat`, `B0006.mat`, `B0007.mat`, and `B0018.mat`) into the `data/` directory.
 4. Open the notebooks in Google Colab or a local Jupyter environment.
 5. Run the data extraction and modelling notebook before the Digital Twin architecture notebook.
 
@@ -177,6 +226,8 @@ The notebooks contain the data-processing, feature engineering, modelling, and e
 ## Limitations and Future Work
 
 The current implementation is a prototype focused on data-driven health estimation and interpretable indicators. It does not yet constitute a fully validated electrochemical Digital Twin.
+
+The main limitations include differences in predictive performance across battery cells, incomplete impedance availability, and the absence of independently validated electrochemical model parameters.
 
 Future development may include:
 
