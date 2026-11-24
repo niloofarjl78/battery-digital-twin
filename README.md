@@ -1,229 +1,93 @@
-# Explainable Battery Digital Twin
+# Battery Digital Twin: Explainable State-of-Health Estimation
 
-An explainable Digital Twin prototype for lithium-ion battery health monitoring, combining NASA battery ageing data, interpretable health indicators, and machine-learning-based State-of-Health (SoH) estimation.
+A data-driven Digital Twin prototype for lithium-ion battery health monitoring, combining operational measurements, electrochemical impedance indicators, and machine learning to estimate Battery State of Health (SoH).
+
+The project investigates how measurable battery characteristics can support interpretable health estimation, how impedance information contributes to predictive performance, and how a hybrid modelling strategy can handle incomplete measurements.
+
+---
 
 ## Project Overview
 
-This project investigates how operational measurements and interpretable degradation indicators can support the development of a Digital Twin for lithium-ion battery health monitoring.
+Lithium-ion batteries gradually lose their capacity and performance through ageing. Reliable State-of-Health estimation is essential for battery monitoring, predictive maintenance, and Battery Management Systems.
 
-Using the NASA Battery Ageing Dataset, the project develops a data-processing and modelling workflow to estimate battery State of Health (SoH), investigate resistance-related degradation indicators, and evaluate model generalisation across different battery cells.
+This project develops a data-driven Digital Twin prototype using the NASA Battery Aging dataset. It integrates discharge measurements and electrochemical impedance indicators into a unified dataset, applies machine learning models for SoH estimation, and represents battery health through an updatable digital state.
 
-The prototype represents battery condition through an updated digital state containing operational measurements, capacity-based health indicators, impedance measurements, and estimated SoH.
+**Main research question**
 
-## Research Question
+To what extent can operational measurements and impedance-derived indicators improve the accuracy and interpretability of State-of-Health estimation across different lithium-ion battery cells?
 
-**How can interpretable electrical, thermal, and impedance-based health indicators be integrated with machine learning to improve the accuracy, interpretability, and cross-battery generalisability of State-of-Health estimation for lithium-ion batteries?**
+### Objectives
 
-## Research Objectives
+- Extract and integrate operational and impedance measurements from battery ageing experiments.
+- Investigate the relationship between battery degradation and measurable health indicators.
+- Develop baseline and impedance-enhanced machine learning models for SoH estimation.
+- Implement a hybrid prediction strategy to handle missing impedance measurements.
+- Evaluate generalisation to previously unseen battery cells.
+- Develop a digital representation of battery health that can be updated using successive observations.
 
-- Extract and process battery charge, discharge, and impedance measurements.
-- Derive capacity-based State-of-Health indicators.
-- Investigate the relationship between electrical measurements, impedance parameters, and battery degradation.
-- Develop and evaluate machine-learning models for SoH estimation.
-- Implement a structured Digital Twin state representation.
-- Assess model generalisation using leave-one-battery-out validation.
-
-## Digital Twin Architecture
-
-The proposed prototype is organised into interconnected layers:
-
-**Physical Data Layer**
-
-- Battery charge and discharge measurements.
-- Voltage, current, and temperature observations.
-- Capacity and impedance measurements.
-
-**Data Processing Layer**
-
-- MATLAB data extraction.
-- Timestamp processing and data integration.
-- Feature engineering and impedance-to-discharge matching.
-- Data quality checks and missing-value handling.
-
-**Digital State Layer**
-
-- Battery identification and observation tracking.
-- Capacity and measured SoH.
-- Electrical and thermal indicators.
-- Impedance measurements.
-- Estimated SoH.
-
-**Health Estimation and Diagnostic Layer**
-
-- Ridge regression for SoH estimation.
-- Cross-battery model validation.
-- Prediction error and residual analysis.
-- Investigation of interpretable degradation indicators.
+---
 
 ## Dataset
 
-The project uses four lithium-ion battery cells from the NASA Ames Prognostics Center of Excellence (PCoE) Battery Data Set:
+The project uses the **NASA Battery Aging Dataset**, available through the NASA Prognostics Data Repository and its PHM Society mirror.
 
-- B0005
-- B0006
-- B0007
-- B0018
+Four lithium-ion batteries are analysed:
 
-The dataset includes charge, discharge, and impedance measurements collected during battery ageing experiments.
+| Battery | Discharge observations | Impedance observations |
+|---|---:|---:|
+| B0005 | 168 | 278 |
+| B0006 | 168 | 278 |
+| B0007 | 168 | 278 |
+| B0018 | 132 | 53 |
+| **Total** | **636** | **687** |
 
-**Dataset source:** [NASA PCoE Battery Data Set](https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/)
+The dataset contains charge, discharge, and electrochemical impedance spectroscopy (EIS) measurements collected during battery ageing experiments.
 
-**Dataset citation:**
+### Measurement characteristics
 
-Saha, B. and Goebel, K. (2007). *Battery Data Set*. NASA Prognostics Data Repository, NASA Ames Research Center, Moffett Field, CA.
+- **Charging:** Constant-current charging at 1.5 A until 4.2 V, followed by constant-voltage charging until the current decreases to 20 mA.
+- **Discharging:** Constant-current discharge at approximately 2 A, with battery-specific voltage cut-off limits.
+- **Impedance:** Electrochemical impedance measurements over a frequency range of 0.1 Hz to 5 kHz.
 
-The original MATLAB files are not included in this repository. Refer to [`data/README.md`](data/README.md) for download and setup instructions.
+The extracted impedance indicators include:
 
-## Methodology
+- \(R_e\): estimated electrolyte resistance.
+- \(R_{ct}\): estimated charge-transfer resistance.
 
-### Data Extraction and Feature Engineering
+The project retains missing impedance observations rather than removing the corresponding discharge records. Timestamp-based matching with a one-hour tolerance produces an integrated dataset containing **636 discharge observations, of which 419 have matched impedance measurements**.
 
-Discharge measurements are processed to derive:
+### Dataset source
 
-- Discharge capacity.
-- Mean, minimum, and maximum voltage.
-- Mean current.
-- Mean and maximum temperature.
-- Temperature rise.
-- Discharge duration.
-- Capacity-based State of Health.
+- [NASA Battery Data Set – PHM Society mirror](https://phm-datasets.s3.amazonaws.com/NASA/5.+Battery+Data+Set.zip)
+- [Dataset documentation and citation](data/README.md)
 
-Discharge duration is retained as a descriptive variable but excluded from the SoH prediction models to avoid potential target leakage, since discharge capacity is derived from current and discharge time.
+The original MATLAB files are not included in this repository.
 
-### State-of-Health Calculation
-
-The State of Health (SoH) is calculated relative to the first measured discharge capacity of each battery:
-
-$$
-\mathrm{SoH}_i = \frac{Q_i}{Q_{\mathrm{initial}}} \times 100
-$$
-
-where:
-
-- \(Q_i\) is the discharge capacity measured at observation \(i\) (Ah).
-- \(Q_{\mathrm{initial}}\) is the first measured discharge capacity of the same battery (Ah).
-
-Impedance measurements, including electrolyte resistance (Re) and charge-transfer resistance (Rct), are matched to discharge observations using timestamp-based matching. Missing impedance measurements are preserved rather than replaced with artificial values.
-
-### State-of-Health Estimation
-
-Ridge regression models are developed using electrical and thermal features, with additional experiments incorporating impedance-related indicators.
-
-Model performance is evaluated using:
-
-- Mean Absolute Error (MAE).
-- Root Mean Squared Error (RMSE).
-- Coefficient of Determination (R²).
-
-### Cross-Battery Validation
-
-A leave-one-battery-out (LOBO) validation strategy is used. In each experiment, three battery cells are used for training and the remaining cell is held out for testing.
-
-This evaluates the ability of the model to generalise to a battery not represented in its training data.
-
-### Interpretable Health Indicators
-
-The project investigates the relationship between SoH and resistance-related indicators, including:
-
-- Electrolyte resistance (Re).
-- Charge-transfer resistance (Rct).
-- An apparent resistance proxy derived from post-discharge voltage relaxation.
-
-The apparent resistance is estimated using the fitted relaxation voltage amplitude and the current immediately before discharge termination.
-
-These indicators are treated as diagnostic proxies rather than independently validated electrochemical parameters.
-
-## Key Results
-
-### Baseline Model: Leave-One-Battery-Out Validation
-
-The initial Ridge regression model, using electrical and thermal features, achieved the following results:
-
-| Held-out battery | MAE (%) | RMSE (%) | R² |
-|---|---:|---:|---:|
-| B0005 | 1.7923 | 2.5010 | 0.9402 |
-| B0006 | 3.4296 | 4.2320 | 0.8825 |
-| B0007 | 4.2123 | 4.9917 | 0.6540 |
-| B0018 | 1.5000 | 1.7369 | 0.9564 |
-
-The results indicate differences in predictive performance across battery cells, highlighting the challenge of cross-battery generalisation.
-
-### Contribution of Impedance Measurements
-
-Further experiments investigated the contribution of impedance features using the same matched observations for both models.
-
-The impedance-augmented model reduced the weighted MAE from **2.6949% to 2.0762%**, corresponding to a 22.96% reduction in this matched-observation comparison.
-
-However, the improvement varied across battery cells. Impedance features improved performance for some cells but reduced it for others, indicating that their predictive contribution is battery-dependent.
-
-### Hybrid SoH Estimation
-
-A hybrid estimation strategy was also evaluated. It uses the impedance-augmented model when impedance measurements are available and the baseline model as a fallback when they are missing.
-
-Across all test observations, the hybrid approach achieved an overall MAE of **2.5723%**, compared with **2.9799%** for the baseline model evaluated on the same test observations. This corresponds to a **13.68% reduction in MAE**.
-
-However, performance varied across battery cells, reflecting differences in impedance availability and model generalisation.
-
-### Resistance-Related Diagnostic Analysis
-
-The analysis identified strong associations between resistance-related indicators and battery SoH in several cells.
-
-However, these relationships do not necessarily translate into improved cross-battery prediction. Experiments incorporating the apparent resistance proxy did not improve the overall weighted MAE of the baseline model.
-
-This distinction highlights the difference between an indicator's diagnostic relationship with battery degradation and its usefulness as a predictive feature.
-
-## Repository Structure
-
-The repository is organised into three main directories:
-
-```text
-battery-digital-twin/
-│
-├── data/
-│   └── README.md
-│
-├── notebooks/
-│   ├── 01_Battery_Digital_Twin_Data_Exploration_and_Modelling.ipynb
-│   ├── 02_Battery_Digital_Twin_Architecture.ipynb
-│   └── README.md
-│
-├── results/
-│   ├── modelling_summary.md
-│   ├── *.csv
-│   └── *.png
-│
-├── .gitignore
-└── README.md
-```
-
-- `data/`: Instructions for obtaining and preparing the original NASA battery dataset.
-- `notebooks/`: Jupyter notebooks for data exploration, feature engineering, SoH estimation, model validation, and Digital Twin architecture development.
-- `results/`: Exported datasets, model evaluation metrics, diagnostic analyses, and visualisations.
-- `.gitignore`: Excludes raw data files and temporary development files from version control.
+---
 
 ## Digital Twin Architecture
 
-The proposed architecture follows a data-driven Digital Twin workflow for lithium-ion battery health monitoring. It integrates battery operational measurements, impedance-derived indicators, machine learning models, and battery-state updates to estimate State of Health (SoH).
+The proposed architecture follows a data-driven Digital Twin workflow. It connects experimental measurements, feature extraction, data integration, health estimation, and battery-state updates.
 
-### System Workflow
+### System workflow
 
-The architecture consists of the following main components:
+1. **Data acquisition:** The NASA dataset provides charge, discharge, and impedance measurements for four lithium-ion battery cells.
 
-1. **Data Acquisition:** The NASA Battery Aging dataset provides charge, discharge, and electrochemical impedance measurements for four lithium-ion batteries (B0005, B0006, B0007, and B0018).
+2. **Feature extraction:** Discharge features include voltage, current, temperature, discharge capacity, and calculated SoH. Impedance features include \(R_e\) and \(R_{ct}\).
 
-2. **Feature Extraction:** Discharge-related features are extracted, including voltage, current, temperature, discharge capacity, and calculated SoH. Impedance measurements, including electrolyte resistance (Re) and charge-transfer resistance (Rct), are processed separately.
+3. **Data integration:** Discharge and impedance observations are associated through timestamp-based matching. An impedance measurement is considered available when it falls within the one-hour matching window.
 
-3. **Data Integration:** Discharge and impedance observations are integrated through timestamp-based matching. Impedance measurements are associated with discharge observations when they fall within the specified one-hour matching window. Missing impedance measurements are retained rather than discarded.
+4. **Feature engineering:** Operational and impedance-derived features are prepared for model training and evaluation.
 
-4. **Health Estimation:** Two Ridge Regression models are considered: a baseline model using operational features and an impedance-enhanced model incorporating impedance-derived indicators. A hybrid prediction strategy uses the impedance-enhanced model when impedance data are available and falls back to the baseline model otherwise.
+5. **Health estimation:** A baseline Ridge Regression model and an impedance-enhanced model estimate battery SoH. A hybrid prediction strategy selects the impedance-enhanced prediction when impedance data are available and otherwise uses the baseline model.
 
-5. **Model Validation:** The models are evaluated using Leave-One-Battery-Out (LOBO) validation, in which three batteries are used for training and the remaining battery is held out for testing. This evaluates the ability to generalise to an unseen battery.
+6. **Digital Twin state update:** The estimated SoH and available measurements are incorporated into a battery-state representation, enabling health monitoring across successive observations.
 
-6. **Digital Twin State Update:** Estimated SoH and available measurements are incorporated into a battery-state representation, enabling the monitoring of battery health across successive observations.
+7. **Model validation:** Leave-One-Battery-Out (LOBO) validation evaluates the predictive performance and generalisation of the models across unseen battery cells.
 
-### Architecture Diagram
+### Architecture diagram
 
-
+```mermaid
 flowchart TD
     A["NASA Battery Aging Dataset"]
     B["Data Extraction"]
@@ -255,64 +119,21 @@ flowchart TD
     K --> L
     J --> M
     M --> N
+```
 
+---
 
-### Implementation Scope
+## Methodology
 
-The current implementation demonstrates a data-driven Digital Twin prototype. It establishes a workflow for integrating battery measurements, estimating SoH, handling incomplete impedance observations, and updating a battery-state representation.
+### State of Health estimation
 
-The current prototype does not yet implement a validated electrochemical battery model or a real-time connection to a physical battery. These are potential directions for further development.
+Battery State of Health is calculated from the measured discharge capacity relative to the initial discharge capacity of the corresponding battery.
 
-## Results
+$$
+SoH_i(\%) =
+\frac{Q_i}{Q_{\mathrm{initial}}}\times 100
+$$
 
-The project evaluates battery State-of-Health estimation using operational and impedance-derived features, with Leave-One-Battery-Out validation across four battery cells.
+Where:
 
-The experiments investigate:
-- Baseline versus impedance-enhanced SoH estimation.
-- A hybrid prediction strategy for handling missing impedance measurements.
-- The contribution of relaxation-derived indicators and apparent resistance proxies.
-- Model generalisation across previously unseen battery cells.
-
-Detailed experimental results, performance comparisons, visualisations, and analysis are available in [`results/`](results/).
-
-### Reproducibility
-
-To run the notebooks in Google Colab:
-
-1. Download the [NASA Battery Data Set](https://phm-datasets.s3.amazonaws.com/NASA/5.+Battery+Data+Set.zip).
-2. Extract the archive and locate `B0005.mat`, `B0006.mat`, `B0007.mat`, and `B0018.mat`.
-3. Open Notebook 01 in Google Colab.
-4. When prompted by the notebook, upload the four MATLAB files into the Colab session.
-5. Run Notebook 01 to extract and process the battery data and generate the combined dataset.
-6. Open Notebook 02 and follow its setup instructions to load the generated dataset and explore the Digital Twin architecture.
-
-The original MATLAB files are not included in this repository because of their size. See [`data/README.md`](data/README.md) for dataset information and citation details.
-
-## Tools and Technologies
-
-- Python
-- NumPy and Pandas
-- SciPy
-- Matplotlib
-- Scikit-learn
-- Jupyter Notebook / Google Colab
-- MATLAB data (`.mat`) processing
-
-## Limitations and Future Work
-
-The current implementation is a prototype focused on data-driven health estimation and interpretable indicators. It does not yet constitute a fully validated electrochemical Digital Twin.
-
-The main limitations include differences in predictive performance across battery cells, incomplete impedance availability, and the absence of independently validated electrochemical model parameters.
-
-Future development may include:
-
-- Equivalent Circuit Model (ECM) parameter identification and validation.
-- Physics-informed battery degradation modelling.
-- Integration with electrochemical simulation frameworks such as PyBaMM.
-- Improved temporal validation and uncertainty quantification.
-- Online state updates using incoming battery measurements.
-- Integration with battery management and monitoring systems.
-
-## Author
-
-Developed as an independent research and technical portfolio project exploring explainable Digital Twins, battery health monitoring, and predictive modelling.
+- \(Q_i\) is
