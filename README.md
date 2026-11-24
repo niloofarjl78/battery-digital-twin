@@ -201,6 +201,78 @@ battery-digital-twin/
 - `results/`: Exported datasets, model evaluation metrics, diagnostic analyses, and visualisations.
 - `.gitignore`: Excludes raw data files and temporary development files from version control.
 
+## Digital Twin Architecture
+
+The proposed architecture follows a data-driven Digital Twin workflow for lithium-ion battery health monitoring. It integrates battery operational measurements, impedance-derived indicators, machine learning models, and battery-state updates to estimate State of Health (SoH).
+
+### System Workflow
+
+The architecture consists of the following main components:
+
+1. **Data Acquisition:** The NASA Battery Aging dataset provides charge, discharge, and electrochemical impedance measurements for four lithium-ion batteries (B0005, B0006, B0007, and B0018).
+
+2. **Feature Extraction:** Discharge-related features are extracted, including voltage, current, temperature, discharge capacity, and calculated SoH. Impedance measurements, including electrolyte resistance (Re) and charge-transfer resistance (Rct), are processed separately.
+
+3. **Data Integration:** Discharge and impedance observations are integrated through timestamp-based matching. Impedance measurements are associated with discharge observations when they fall within the specified one-hour matching window. Missing impedance measurements are retained rather than discarded.
+
+4. **Health Estimation:** Two Ridge Regression models are considered: a baseline model using operational features and an impedance-enhanced model incorporating impedance-derived indicators. A hybrid prediction strategy uses the impedance-enhanced model when impedance data are available and falls back to the baseline model otherwise.
+
+5. **Model Validation:** The models are evaluated using Leave-One-Battery-Out (LOBO) validation, in which three batteries are used for training and the remaining battery is held out for testing. This evaluates the ability to generalise to an unseen battery.
+
+6. **Digital Twin State Update:** Estimated SoH and available measurements are incorporated into a battery-state representation, enabling the monitoring of battery health across successive observations.
+
+### Architecture Diagram
+
+```mermaid
+flowchart TD
+    A["NASA Battery Aging Dataset"]
+    B["Data Extraction"]
+    C["Discharge Features"]
+    D["Impedance Features"]
+    E["Timestamp-Based Data Integration"]
+    F["Combined Battery Dataset"]
+    G["Feature Engineering"]
+    H["Baseline SoH Model"]
+    I["Impedance-Enhanced SoH Model"]
+    J["Hybrid Prediction Strategy"]
+    K["LOBO Model Validation"]
+    L["Battery State Update"]
+    M["SoH Monitoring and Performance Analysis"]
+
+    A --> B
+    B --> C
+    B --> D
+    C --> E
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    G --> I
+    H --> J
+    I --> J
+    J --> K
+    K --> L
+    L --> M
+```
+
+### Implementation Scope
+
+The current implementation demonstrates a data-driven Digital Twin prototype. It establishes a workflow for integrating battery measurements, estimating SoH, handling incomplete impedance observations, and updating a battery-state representation.
+
+The current prototype does not yet implement a validated electrochemical battery model or a real-time connection to a physical battery. These are potential directions for further development.
+
+## Results
+
+The project evaluates battery State-of-Health estimation using operational and impedance-derived features, with Leave-One-Battery-Out validation across four battery cells.
+
+The experiments investigate:
+- Baseline versus impedance-enhanced SoH estimation.
+- A hybrid prediction strategy for handling missing impedance measurements.
+- The contribution of relaxation-derived indicators and apparent resistance proxies.
+- Model generalisation across previously unseen battery cells.
+
+Detailed experimental results, performance comparisons, visualisations, and analysis are available in [`results/`](results/).
+
 ### Reproducibility
 
 To run the notebooks in Google Colab:
